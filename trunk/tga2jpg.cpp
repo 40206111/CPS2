@@ -9,6 +9,7 @@
 #include "timer.h"
 #include <ctype.h>
 #include <fstream>
+#include <string>
 
 #if defined(_MSC_VER)
 #define strcasecmp _stricmp
@@ -311,9 +312,9 @@ int main(int arg_c, char* ppArgs[])
 	printf("jpge/jpgd example app\n");
 
 	std::ofstream timeFile;
-	timeFile.open("seq_huff.csv");
+	timeFile.open("seq_2pass_100.csv");
 
-	for (int i = 0; i < 1000; ++i)
+	for (int i = 0; i < 200; ++i)
 	{
 		// Parse command line.
 		bool run_exhausive_test = false;
