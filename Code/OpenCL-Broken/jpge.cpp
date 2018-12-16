@@ -16,8 +16,8 @@
 #include <string.h>
 #include <malloc.h>
 
-//open cl stuff
-#include "..\..\jpeg_cl\jpeg_comp\jpeg_comp\kernel.h"
+//open cl kernel
+#include "kernel.h"
 
 #define JPGE_MAX(a,b) (((a)>(b))?(a):(b))
 #define JPGE_MIN(a,b) (((a)<(b))?(a):(b))
@@ -829,6 +829,7 @@ namespace jpge {
 				RGBA_to_YCC(pDst, Psrc, m_image_x);
 			else if (m_image_bpp == 3)
 			{
+				//Call Kernel code
 				Kernel::RGB_to_YCC(pDst, Psrc, m_image_x);
 			}
 			else
