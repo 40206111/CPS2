@@ -754,8 +754,9 @@ namespace jpge {
 		}
 		else if ((m_comp_h_samp[0] == 2) && (m_comp_v_samp[0] == 1))
 		{
+			//get number of threads
 			auto num_threads = std::thread::hardware_concurrency();
-
+//parallel for
 #pragma omp parallel for num_threads(num_threads)
 			for (int i = 0; i < m_mcus_per_row; i++)
 			{

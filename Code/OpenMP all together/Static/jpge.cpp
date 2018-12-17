@@ -25,6 +25,9 @@
 
 namespace jpge {
 
+	//get number of threads
+	const auto num_threads = std::thread::hardware_concurrency();
+
 	static inline void *jpge_malloc(size_t nSize) { return malloc(nSize); }
 	static inline void jpge_free(void *p) { free(p); }
 
@@ -62,16 +65,14 @@ namespace jpge {
 
 	// Low-level helper functions.
 	template <class T> inline void clear_obj(T &obj) { memset(&obj, 0, sizeof(obj)); }
-	
+
 	const int YR = 19595, YG = 38470, YB = 7471, CB_R = -11059, CB_G = -21709, CB_B = 32768, CR_R = 32768, CR_G = -27439, CR_B = -5329;
 	static inline uint8 clamp(int i) { if (static_cast<uint>(i) > 255U) { if (i < 0) i = 0; else if (i > 255) i = 255; } return static_cast<uint8>(i); }
 
 	static void RGB_to_YCC(uint8* pDst, const uint8 *pSrc, int num_pixels)
 	{
-		//get number of threads
-		auto num_threads = std::thread::hardware_concurrency();
-//parallel for
-#pragma omp parallel for num_threads(num_threads)
+		//parallel for
+#pragma omp parallel for num_threads(num_threads) schedule(static, 1)
 		for (int i = num_pixels; i > 0; i--)
 		{
 			const int r = pSrc[0], g = pSrc[1], b = pSrc[2];
@@ -134,19 +135,27 @@ namespace jpge {
 	static void DCT2D(int32 *p)
 	{
 		int32 c, *q = p;
-		for (c = 7; c >= 0; c--, q += 8)
+//parallel for
+#pragma omp parallel for num_threads(num_threads) schedule(static, 1)
+		for (c = 7; c >= 0; c--)
 		{
 			int32 s0 = q[0], s1 = q[1], s2 = q[2], s3 = q[3], s4 = q[4], s5 = q[5], s6 = q[6], s7 = q[7];
 			DCT1D(s0, s1, s2, s3, s4, s5, s6, s7);
 			q[0] = s0 << ROW_BITS; q[1] = DCT_DESCALE(s1, CONST_BITS - ROW_BITS); q[2] = DCT_DESCALE(s2, CONST_BITS - ROW_BITS); q[3] = DCT_DESCALE(s3, CONST_BITS - ROW_BITS);
 			q[4] = s4 << ROW_BITS; q[5] = DCT_DESCALE(s5, CONST_BITS - ROW_BITS); q[6] = DCT_DESCALE(s6, CONST_BITS - ROW_BITS); q[7] = DCT_DESCALE(s7, CONST_BITS - ROW_BITS);
+			q += 8;
 		}
-		for (q = p, c = 7; c >= 0; c--, q++)
+		//moved this outside loop decleration so it is openMP parallelisable
+		q = p;
+//parallel for
+#pragma omp parallel for num_threads(num_threads) schedule(static, 1)
+		for (c = 7; c >= 0; c--)
 		{
 			int32 s0 = q[0 * 8], s1 = q[1 * 8], s2 = q[2 * 8], s3 = q[3 * 8], s4 = q[4 * 8], s5 = q[5 * 8], s6 = q[6 * 8], s7 = q[7 * 8];
 			DCT1D(s0, s1, s2, s3, s4, s5, s6, s7);
 			q[0 * 8] = DCT_DESCALE(s0, ROW_BITS + 3); q[1 * 8] = DCT_DESCALE(s1, CONST_BITS + ROW_BITS + 3); q[2 * 8] = DCT_DESCALE(s2, CONST_BITS + ROW_BITS + 3); q[3 * 8] = DCT_DESCALE(s3, CONST_BITS + ROW_BITS + 3);
 			q[4 * 8] = DCT_DESCALE(s4, ROW_BITS + 3); q[5 * 8] = DCT_DESCALE(s5, CONST_BITS + ROW_BITS + 3); q[6 * 8] = DCT_DESCALE(s6, CONST_BITS + ROW_BITS + 3); q[7 * 8] = DCT_DESCALE(s7, CONST_BITS + ROW_BITS + 3);
+			q++;
 		}
 	}
 
@@ -760,6 +769,8 @@ namespace jpge {
 		}
 		else if ((m_comp_h_samp[0] == 2) && (m_comp_v_samp[0] == 1))
 		{
+			//parallel for
+#pragma omp parallel for num_threads(num_threads) schedule(static, 1)
 			for (int i = 0; i < m_mcus_per_row; i++)
 			{
 				load_block_8_8(i * 2 + 0, 0, 0); code_block(0); load_block_8_8(i * 2 + 1, 0, 0); code_block(0);
